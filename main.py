@@ -7,17 +7,15 @@ import argparse
 import sys
 import subprocess
 import json
+import ast 
+from pyfzf.pyfzf import FzfPrompt
 
 # Test URL
 # LOFI_STREAM_URL = "https://www.youtube.com/watch?v=lTRiuFIWV54"
 
 # LOFI_STREAM_URL = "https://www.youtube.com/watch?v=J2i0cZWCdq4"
 
-
-#Test info_dict
-
-
-
+fzf = FzfPrompt()
 
 # yt-dlp options
 ydl_opts = {
@@ -27,6 +25,7 @@ ydl_opts = {
             'quiet': True,
             'extract_flat': True,
             'skip_download': True,
+            'verbose': True,
 }
 
 # Function for argument parsing
@@ -64,42 +63,40 @@ def get_audio_url(video_url):
 
 def channel_scraper(channel_url):
 
-    streams = []
+    streams = {
+
+        "title": [],
+        "url": [],
+
+    } 
 
     with YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(channel_url, download=False)
 
         entries = info_dict["entries"][1]["entries"]
 
-        for i in range(0,10):
+        for i in range(len(entries)):
             url = entries[i]["url"]
             title = entries[i]["title"]
 
             if title and url:
-                streams.append({"title" : title, "url" : url})
-    
+                streams["title"].append(title)
+                streams["url"].append(url)
+
     # with open('content.txt','w') as f:
     #     json.dump(info_dict,f)
 
-    # for _ in info_dict:
-    #     if count >= 10:
-    #         break
-    #
-    #     title = info_dict["title"]
-    #
-    #     if title:
-    #         streams.append({"title:" : title})
-    #         count+=1
+    selected_choice = fzf.prompt(streams["title"])
 
-    # print(streams)
+    video_title = selected_choice[0]
 
-    for i in range(0,10):
-        print(f'{i} Title: ' , streams[i]['title'])
-        print(f'{i} URL: ' , streams[i]['url'])
-    
-    choice = int(input("Enter the stream you want to listen"))
+    video_index = streams["title"].index(video_title) 
 
-    audio_url = streams[choice]['url'] 
+    print(video_index)
+
+    print(streams['title'][8])
+
+    audio_url = streams['url'][video_index] 
 
     converted_url = get_audio_url(audio_url);
 
