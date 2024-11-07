@@ -23,10 +23,10 @@ import json
 ydl_opts = {
 
             'format':"mp3/bestaudio/best",
-            'quiet': True,
             'noplaylist' : True,
+            'quiet': True,
             'extract_flat': True,
-
+            'skip_download': True,
 }
 
 # Function for argument parsing
@@ -77,9 +77,9 @@ def channel_scraper(channel_url):
 
             if title and url:
                 streams.append({"title" : title, "url" : url})
-
+    
     # with open('content.txt','w') as f:
-    #     json.dump(url,f)
+    #     json.dump(info_dict,f)
 
     # for _ in info_dict:
     #     if count >= 10:
@@ -93,9 +93,13 @@ def channel_scraper(channel_url):
 
     # print(streams)
 
-    # print(streams[2]['url'])
+    for i in range(0,10):
+        print(f'{i} Title: ' , streams[i]['title'])
+        print(f'{i} URL: ' , streams[i]['url'])
+    
+    choice = int(input("Enter the stream you want to listen"))
 
-    audio_url = streams[2]['url'] 
+    audio_url = streams[choice]['url'] 
 
     converted_url = get_audio_url(audio_url);
 
@@ -121,8 +125,6 @@ def main():
         # print("Using Channel stream")
         audio_url = channel_scraper(args.c);
         
-        print(audio_url)
-
         if args.m:
             mpv_player(audio_url);
         else:
