@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # Classes importing
+from urllib import request
 from yt_dlp import YoutubeDL
 import vlc
 import argparse
@@ -9,11 +10,16 @@ import subprocess
 import json
 import ast 
 from pyfzf.pyfzf import FzfPrompt
+import requests
+from bs4 import BeautifulSoup
+import time
 
 # Test URL
 # LOFI_STREAM_URL = "https://www.youtube.com/watch?v=lTRiuFIWV54"
 
 # LOFI_STREAM_URL = "https://www.youtube.com/watch?v=J2i0cZWCdq4"
+
+LOFI_GIRL_BASE_URL = "https://lofigirl.com/wp-content/uploads/"
 
 fzf = FzfPrompt()
 
@@ -42,6 +48,7 @@ def parse_arguments():
     parser.add_argument('-m',action='store_true', help="To use mpv instead of vlc")
     parser.add_argument('-q', action='store_true', help="Runs it in quiet mode")
     parser.add_argument('-c', type=str,help='Specify the Youtube Channel URL for listing of streams')
+    parser.add_argument('-w', action='store_true', help="Scrape from Lofi Girl Website")
     
     args = parser.parse_args()
 
@@ -111,19 +118,43 @@ def vlc_player(audio_url):
     while True:
         pass
 
-def mpv_player(audio_url):
+def mpv_player_url(audio_url):
 
     subprocess.run(["mpv", audio_url])
 
+def website_scraper(url):
+
+    # response = requests.get(url)
+    #
+    # print(response)
+    #
+    # soup = BeautifulSoup(response.content , "html.parser")
+    # 
+    # links = soup.find_all("a") 
+
+    full_url_2024 = url + "2023/" + "01/"
+
+    response = requests.get(full_url_2024)
+
+    soup = BeautifulSoup(response.content, "html.parser")
+
+    links = soup.find_all("a")
+
+    mp3_links = [link["href"] for link in links if "href" in link.attrs and link['href'].endswith(".mp3")]
+
+    for i in range(len(mp3_links)):
+        with open("playlist.m3u", "a") as f:
+            f.write("\n"+full_url_2024 + mp3_links[i] + "\n")
+
 def main():
     parse_arguments();
-    
+
     if args.c:
         # print("Using Channel stream")
         audio_url = channel_scraper(args.c);
         
         if args.m:
-            mpv_player(audio_url);
+            mpv_player_url(audio_url);
         else:
             vlc_player(audio_url);
 
@@ -132,8 +163,17 @@ def main():
             audio_url = get_audio_url(args.u);
 
             if args.m:
-                mpv_player(audio_url);
+                mpv_player_url(audio_url);
             else:
                 vlc_player(audio_url);
+
+    elif args.w:
+        print("Website choosen")
+
+        website_scraper(LOFI_GIRL_BASE_URL)
+
+        mpv_player_url('./playlist.m3u')
+
+
 if __name__ == "__main__":
     main(); 

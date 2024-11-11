@@ -2,3 +2,5 @@ yt-dlp
 python-vlc
 mpv
 pyfzf
+requests
+beautifulsoup4
