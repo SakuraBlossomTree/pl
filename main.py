@@ -48,7 +48,7 @@ def parse_arguments():
     parser.add_argument('-m',action='store_true', help="To use mpv instead of vlc")
     parser.add_argument('-q', action='store_true', help="Runs it in quiet mode")
     parser.add_argument('-c', type=str,help='Specify the Youtube Channel URL for listing of streams')
-    parser.add_argument('-w', action='store_true', help="Scrape from Lofi Girl Website")
+    parser.add_argument('-w', type=int, help="Scrape from Lofi Girl Website")
     
     args = parser.parse_args()
 
@@ -132,19 +132,38 @@ def website_scraper(url):
     # 
     # links = soup.find_all("a") 
 
-    full_url_2024 = url + "2023/" + "01/"
+    # full_url = url + "/01/" 
+    #
+    # response = requests.get(full_url)
+    #
+    # soup = BeautifulSoup(response.content, "html.parser")
+    #
+    # links = soup.find_all("a")
+    #
+    # mp3_links = [link["href"] for link in links if "href" in link.attrs and link['href'].endswith(".mp3")]
+    #
+    # for i in range(len(mp3_links)):
+    #     with open("playlist.m3u", "a") as f:
+    #         f.write("\n"+full_url + mp3_links[i] + "\n")
 
-    response = requests.get(full_url_2024)
+    with open("playlist.m3u", "a") as f:
+      
+        for month in range(1,13):
+            month_dir = f"{month:02}"
+            full_url = url + "/" + month_dir
 
-    soup = BeautifulSoup(response.content, "html.parser")
+            response = requests.get(full_url)
+            if response.status_code != 200:
+                print("Can't get the page")
 
-    links = soup.find_all("a")
+            soup = BeautifulSoup(response.content, "html.parser")
+            links = soup.find_all("a")
 
-    mp3_links = [link["href"] for link in links if "href" in link.attrs and link['href'].endswith(".mp3")]
+            mp3_links = [link["href"] for link in links if "href" in link.attrs and link['href'].endswith(".mp3")]
 
-    for i in range(len(mp3_links)):
-        with open("playlist.m3u", "a") as f:
-            f.write("\n"+full_url_2024 + mp3_links[i] + "\n")
+            for mp3 in mp3_links:
+                full_mp3_url = full_url + "/" + mp3
+                f.write(full_mp3_url + "\n")
 
 def main():
     parse_arguments();
@@ -170,10 +189,16 @@ def main():
     elif args.w:
         print("Website choosen")
 
-        website_scraper(LOFI_GIRL_BASE_URL)
+        url = LOFI_GIRL_BASE_URL + str(args.w)
 
-        mpv_player_url('./playlist.m3u')
+        print(url)
 
+        website_scraper(url)
+
+        if args.m:
+            mpv_player_url('./playlist.m3u')
+        else:
+            print("VLC Player not avaiable")
 
 if __name__ == "__main__":
     main(); 
