@@ -1,26 +1,20 @@
 #!/usr/bin/env python3
 
 # Classes importing
-from urllib import request
 from yt_dlp import YoutubeDL
 import vlc
 import argparse
 import sys
 import subprocess
-import json
-import ast 
 from pyfzf.pyfzf import FzfPrompt
 import requests
 from bs4 import BeautifulSoup
-import time
+import os
 
-# Test URL
-# LOFI_STREAM_URL = "https://www.youtube.com/watch?v=lTRiuFIWV54"
-
-# LOFI_STREAM_URL = "https://www.youtube.com/watch?v=J2i0cZWCdq4"
-
+# Lofi Girl Website
 LOFI_GIRL_BASE_URL = "https://lofigirl.com/wp-content/uploads/"
 
+# Initialize fzf
 fzf = FzfPrompt()
 
 # yt-dlp options
@@ -41,7 +35,7 @@ def parse_arguments():
 
     parser = argparse.ArgumentParser(
             prog="pl",
-            description="Which stands for Play Lofi, Is a simple lofi player that scrapes Youtube for URL",
+            description="Which stands for Play Lofi, Is a simple lofi player that scrapes Youtube and Lofi Girl's Website for Music",
             add_help=True,
             )
     parser.add_argument('-u', type=str,help='Specify the Youtube URL for the stream')
@@ -49,7 +43,8 @@ def parse_arguments():
     parser.add_argument('-q', action='store_true', help="Runs it in quiet mode")
     parser.add_argument('-c', type=str,help='Specify the Youtube Channel URL for listing of streams')
     parser.add_argument('-w', type=int, help="Scrape from Lofi Girl Website")
-    
+    parser.add_argument('-s', action='store_true', help="Add this to play music on shuffle")
+
     args = parser.parse_args()
 
     if len(sys.argv) == 1:
@@ -67,7 +62,7 @@ def get_audio_url(video_url):
         audio_url = info_dict["url"] 
         return audio_url
 
-
+# Channel Scraper Function
 def channel_scraper(channel_url):
 
     streams = {
@@ -89,9 +84,6 @@ def channel_scraper(channel_url):
             if title and url:
                 streams["title"].append(title)
                 streams["url"].append(url)
-
-    # with open('content.txt','w') as f:
-    #     json.dump(info_dict,f)
 
     selected_choice = fzf.prompt(streams["title"])
 
@@ -118,33 +110,11 @@ def vlc_player(audio_url):
     while True:
         pass
 
-def mpv_player_url(audio_url):
+def mpv_player(audio_url):
 
     subprocess.run(["mpv", audio_url])
-
+    
 def website_scraper(url):
-
-    # response = requests.get(url)
-    #
-    # print(response)
-    #
-    # soup = BeautifulSoup(response.content , "html.parser")
-    # 
-    # links = soup.find_all("a") 
-
-    # full_url = url + "/01/" 
-    #
-    # response = requests.get(full_url)
-    #
-    # soup = BeautifulSoup(response.content, "html.parser")
-    #
-    # links = soup.find_all("a")
-    #
-    # mp3_links = [link["href"] for link in links if "href" in link.attrs and link['href'].endswith(".mp3")]
-    #
-    # for i in range(len(mp3_links)):
-    #     with open("playlist.m3u", "a") as f:
-    #         f.write("\n"+full_url + mp3_links[i] + "\n")
 
     with open("playlist.m3u", "a") as f:
       
@@ -165,15 +135,15 @@ def website_scraper(url):
                 full_mp3_url = full_url + "/" + mp3
                 f.write(full_mp3_url + "\n")
 
+
 def main():
     parse_arguments();
 
     if args.c:
-        # print("Using Channel stream")
         audio_url = channel_scraper(args.c);
         
         if args.m:
-            mpv_player_url(audio_url);
+            mpv_player(audio_url);
         else:
             vlc_player(audio_url);
 
@@ -182,7 +152,7 @@ def main():
             audio_url = get_audio_url(args.u);
 
             if args.m:
-                mpv_player_url(audio_url);
+                mpv_player(audio_url);
             else:
                 vlc_player(audio_url);
 
@@ -195,10 +165,18 @@ def main():
 
         website_scraper(url)
 
-        if args.m:
-            mpv_player_url('./playlist.m3u')
+        if args.s:
+            if args.m:
+                subprocess.run(["mpv", "--shuffle", "./playlist.m3u"])
+            else:
+                print("VLC player not avaiable")
+        elif args.m:
+            mpv_player('./playlist.m3u')
+
         else:
             print("VLC Player not avaiable")
+
+        os.remove("./playlist.m3u")
 
 if __name__ == "__main__":
     main(); 
