@@ -10,6 +10,7 @@ from pyfzf.pyfzf import FzfPrompt
 import requests
 from bs4 import BeautifulSoup
 import os
+from rich import print
 
 # Lofi Girl Website
 LOFI_GIRL_BASE_URL = "https://lofigirl.com/wp-content/uploads/"
