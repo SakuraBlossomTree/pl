@@ -110,14 +110,16 @@ def vlc_player(audio_url):
     while True:
         pass
 
+# Process for playing mpv player
 def mpv_player(audio_url):
 
     subprocess.run(["mpv", audio_url])
-    
+
+# Function that scrapers Lofi Girl Website based on the year it lists all the files in a playlist.m3u file
 def website_scraper(url):
 
     with open("playlist.m3u", "a") as f:
-      
+     
         for month in range(1,13):
             month_dir = f"{month:02}"
             full_url = url + "/" + month_dir
@@ -135,7 +137,7 @@ def website_scraper(url):
                 full_mp3_url = full_url + "/" + mp3
                 f.write(full_mp3_url + "\n")
 
-
+# Main function
 def main():
     parse_arguments();
 
