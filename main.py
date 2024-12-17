@@ -10,7 +10,6 @@ from pyfzf.pyfzf import FzfPrompt
 import requests
 from bs4 import BeautifulSoup
 import os
-from rich import print
 
 # Lofi Girl Website
 LOFI_GIRL_BASE_URL = "https://lofigirl.com/wp-content/uploads/"
@@ -28,6 +27,8 @@ ydl_opts = {
             'skip_download': True,
             'verbose': True,
 }
+
+
 
 # Function for argument parsing
 def parse_arguments():
@@ -132,6 +133,7 @@ def website_scraper(url):
             soup = BeautifulSoup(response.content, "html.parser")
             links = soup.find_all("a")
 
+
             mp3_links = [link["href"] for link in links if "href" in link.attrs and link['href'].endswith(".mp3")]
 
             for mp3 in mp3_links:
@@ -139,7 +141,8 @@ def website_scraper(url):
                 f.write(full_mp3_url + "\n")
 
 # Main function
-def main():
+def main():  
+    
     parse_arguments();
 
     if args.c:
@@ -181,5 +184,7 @@ def main():
 
         os.remove("./playlist.m3u")
 
+
+
 if __name__ == "__main__":
-    main(); 
+    main()

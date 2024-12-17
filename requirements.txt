@@ -4,4 +4,3 @@ mpv
 pyfzf
 requests
 beautifulsoup4
-rich
