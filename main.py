@@ -23,7 +23,7 @@ fzf = FzfPrompt()
 ydl_opts = {
 
             'format':"mp3/bestaudio/best",
-            'noplaylist' : False,
+            'noplaylist' : True,
             'quiet': True,
             'extract_flat': True,
             'skip_download': True,
@@ -58,19 +58,11 @@ def parse_arguments():
 # A simple function that just gets the url of the youtube video
 def get_audio_url(video_url):
 
-    global audio_url
-
     with YoutubeDL(ydl_opts) as ydl:
-        
+
         info_dict = ydl.extract_info(video_url, download=False)
-        with open("info_dict_playlist.txt" , "w") as f:
-            f.write(json.dumps(info_dict))
-        if type(info_dict) == 'dict':
-            audio_url = info_dict["entries"][i]["url"]
-            mpv_player(audio_url)
-        else:
-            audio_url = info_dict["url"]
-        return audio_url
+        audio_url = info_dict["url"]
+        return audio_url 
 
 # Channel Scraper Function
 def channel_scraper(channel_url):
@@ -87,16 +79,6 @@ def channel_scraper(channel_url):
 
         entries = info_dict["entries"]
 
-        # if info_dict["entries"][1]["entries"] == True:
-        #     entries = info_dict["entries"][1]["entries"]
-        # else:
-        #     entries = info_dict["entries"]
-
-        # print(entries)
-
-        with open("info_dict.txt", 'w') as f:
-            f.write(json.dumps(info_dict))
-
         for i in range(len(entries)):
             url = entries[i]["url"]
             title = entries[i]["title"]
@@ -111,13 +93,7 @@ def channel_scraper(channel_url):
 
     video_index = streams["title"].index(video_title) 
 
-    # print(video_index)
-
-    # print(streams['title'][8])
-
     audio_url = streams['url'][video_index] 
-
-    # print(audio_url)
 
     converted_url = get_audio_url(audio_url);
 
