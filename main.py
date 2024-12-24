@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # Classes importing
+from logging import info
 from yt_dlp import YoutubeDL
 import vlc
 import argparse
@@ -10,6 +11,7 @@ from pyfzf.pyfzf import FzfPrompt
 import requests
 from bs4 import BeautifulSoup
 import os
+import json
 
 # Lofi Girl Website
 LOFI_GIRL_BASE_URL = "https://lofigirl.com/wp-content/uploads/"
@@ -21,11 +23,11 @@ fzf = FzfPrompt()
 ydl_opts = {
 
             'format':"mp3/bestaudio/best",
-            'noplaylist' : True,
+            'noplaylist' : False,
             'quiet': True,
             'extract_flat': True,
             'skip_download': True,
-            'verbose': True,
+            'verbose': False,
 }
 
 
@@ -61,7 +63,13 @@ def get_audio_url(video_url):
     with YoutubeDL(ydl_opts) as ydl:
         
         info_dict = ydl.extract_info(video_url, download=False)
-        audio_url = info_dict["url"] 
+        with open("info_dict_playlist.txt" , "w") as f:
+            f.write(json.dumps(info_dict))
+        if type(info_dict) == 'dict':
+            audio_url = info_dict["entries"][i]["url"]
+            mpv_player(audio_url)
+        else:
+            audio_url = info_dict["url"]
         return audio_url
 
 # Channel Scraper Function
@@ -77,7 +85,17 @@ def channel_scraper(channel_url):
     with YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(channel_url, download=False)
 
-        entries = info_dict["entries"][1]["entries"]
+        entries = info_dict["entries"]
+
+        # if info_dict["entries"][1]["entries"] == True:
+        #     entries = info_dict["entries"][1]["entries"]
+        # else:
+        #     entries = info_dict["entries"]
+
+        # print(entries)
+
+        with open("info_dict.txt", 'w') as f:
+            f.write(json.dumps(info_dict))
 
         for i in range(len(entries)):
             url = entries[i]["url"]
@@ -93,11 +111,13 @@ def channel_scraper(channel_url):
 
     video_index = streams["title"].index(video_title) 
 
-    print(video_index)
+    # print(video_index)
 
-    print(streams['title'][8])
+    # print(streams['title'][8])
 
     audio_url = streams['url'][video_index] 
+
+    # print(audio_url)
 
     converted_url = get_audio_url(audio_url);
 
@@ -147,7 +167,7 @@ def main():
 
     if args.c:
         audio_url = channel_scraper(args.c);
-        
+
         if args.m:
             mpv_player(audio_url);
         else:
