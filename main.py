@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 # Classes importing
-from logging import info
 from yt_dlp import YoutubeDL
 import vlc
 import argparse
@@ -18,19 +17,6 @@ LOFI_GIRL_BASE_URL = "https://lofigirl.com/wp-content/uploads/"
 
 # Initialize fzf
 fzf = FzfPrompt()
-
-# yt-dlp options
-ydl_opts = {
-
-            'format':"mp3/bestaudio/best",
-            'noplaylist' : True,
-            'quiet': True,
-            'extract_flat': True,
-            'skip_download': True,
-            'verbose': False,
-}
-
-
 
 # Function for argument parsing
 def parse_arguments():
@@ -54,6 +40,20 @@ def parse_arguments():
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
+
+parse_arguments();
+
+# yt-dlp options
+ydl_opts = {
+            
+            'format':"mp3/bestaudio/best",
+            'noplaylist' : True,
+            'quiet': True,
+            'extract_flat': True,
+            'skip_download': True,
+            'verbose': True,
+}
+
 
 # A simple function that just gets the url of the youtube video
 def get_audio_url(video_url):
