@@ -111,7 +111,7 @@ def vlc_player(audio_url):
 # Process for playing mpv player
 def mpv_player(audio_url):
 
-    subprocess.run(["mpv", audio_url])
+    subprocess.run(["mpv", "--no-audio-display",audio_url])
 
 # Function that scrapers Lofi Girl Website based on the year it lists all the files in a playlist.m3u file
 def website_scraper(url):
@@ -169,7 +169,7 @@ def main():
 
         if args.s:
             if args.m:
-                subprocess.run(["mpv", "--shuffle", "./playlist.m3u"])
+                subprocess.run(["mpv", "--shuffle","--no-audio-display" ,"./playlist.m3u"])
             else:
                 print("VLC player not avaiable")
         elif args.m:
