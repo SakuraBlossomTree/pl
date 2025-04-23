@@ -79,13 +79,14 @@ def channel_scraper(channel_url):
 
         entries = info_dict["entries"]
 
-        for i in range(len(entries)):
-            url = entries[i]["url"]
-            title = entries[i]["title"]
-
-            if title and url:
-                streams["title"].append(title)
-                streams["url"].append(url)
+        for entry in entries:
+            for video in entry["entries"]:
+                title = video.get("title")
+                url = video.get("url")
+                
+                if title and url:
+                    streams["title"].append(title)
+                    streams["url"].append(url)
 
     selected_choice = fzf.prompt(streams["title"])
 
