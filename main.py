@@ -9,7 +9,7 @@ import subprocess
 from pyfzf.pyfzf import FzfPrompt
 import requests
 from bs4 import BeautifulSoup
-import os
+import os 
 import json
 
 # Lofi Girl Website
