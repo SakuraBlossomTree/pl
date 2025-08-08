@@ -11,9 +11,11 @@ import requests
 from bs4 import BeautifulSoup
 import os 
 import json
+import pathlib
 
 # Initialize fzf
 fzf = FzfPrompt()
+MUSIC_DIR = pathlib.Path.home() / "Music"
 
 # Function for argument parsing
 def parse_arguments():
@@ -30,6 +32,8 @@ def parse_arguments():
     parser.add_argument('-q', action='store_true', help="Runs it in quiet mode")
     parser.add_argument('-c', type=str,help='Specify the Youtube Channel URL for listing of streams')
     parser.add_argument('-s', action='store_true', help="Add this to play music on shuffle")
+    parser.add_argument('-d', action='store_true', help="Download instead of stream")
+    parser.add_argument('-l', action='store_true', help="Play local files")
 
     args = parser.parse_args()
 
@@ -59,6 +63,28 @@ def get_audio_url(video_url):
         info_dict = ydl.extract_info(video_url, download=False)
         audio_url = info_dict["url"]
         return audio_url 
+
+def download_audio(video_url):
+    with YoutubeDL(ydl_opts) as ydl:
+        ydl.download([video_url])
+
+
+def play_local_audio():
+    files = list(MUSIC_DIR.glob("*.mp3"))
+
+    if not files:
+        print("No downloaded songs found.")
+        return
+
+    files_names = [f.name for f in files]
+    selected = fzf.prompt(files_names)
+
+    if not selected:
+        print("No song selected")
+        return
+
+    selected_file = MUSIC_DIR / selected[0]
+    subprocess.run(["mpv", "--no-video", str(selected_file)])
 
 # Channel Scraper Function
 def channel_scraper(channel_url):
@@ -150,10 +176,17 @@ def main():
 
     elif args.u:
             
-            audio_url = search_youtube_and_select(args.u);
+            if args.d:
+                download_audio(args.u)
+            
+            else:
+                audio_url = search_youtube_and_select(args.u);
 
-            if args.m:
-                mpv_player(audio_url);
+                if args.m:
+                    mpv_player(audio_url);
+
+    elif args.l:
+        play_local_audio()
 
 if __name__ == "__main__":
     main()
