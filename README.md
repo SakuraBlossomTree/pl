@@ -4,6 +4,6 @@
 
 ```pl``` stands for Play Lofi
 
-A simple lofi player which uses youtube to scrape Lofi Girl channel
+A simple lofi player which uses youtube to scrape 
 
-It also uses Lofi Girl's website to make a playlist and play it
+It was originally developed for only listening to lofi but you can listen anything from youtube
