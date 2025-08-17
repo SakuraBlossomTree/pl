@@ -32,7 +32,6 @@ def parse_arguments():
     parser.add_argument('-q', action='store_true', help="Runs it in quiet mode")
     parser.add_argument('-c', type=str,help='Specify the Youtube Channel URL for listing of streams')
     parser.add_argument('-s', action='store_true', help="Add this to play music on shuffle")
-    parser.add_argument('-d', action='store_true', help="Download instead of stream")
     parser.add_argument('-l', action='store_true', help="Play local files")
 
     args = parser.parse_args()
@@ -46,12 +45,17 @@ parse_arguments();
 # yt-dlp options
 ydl_opts = {
             
-            'format':"mp3/bestaudio/best",
+            'format':"bestaudio/best",
             'noplaylist' : True,
             'quiet': True,
-            'extract_flat': True,
-            'skip_download': True,
-            'verbose': False,
+            'no_warnings': True,
+            'extract_flat': False,
+            'skip_download': False,
+            'verbose': True,
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+            }],
 }
 
 
@@ -64,10 +68,14 @@ def get_audio_url(video_url):
         audio_url = info_dict["url"]
         return audio_url 
 
-def download_audio(video_url):
-    with YoutubeDL(ydl_opts) as ydl:
-        ydl.download([video_url])
-
+def download_audio(title, video_url):
+    opts = ydl_opts.copy()
+    opts["outtmpl"] = str(MUSIC_DIR / f"{title}.%(ext)s")
+    
+    with YoutubeDL(opts) as ydl:
+        info = ydl.extract_info(video_url, download=True)
+        filename = ydl.prepare_filename(info)
+        return filename
 
 def play_local_audio():
     files = list(MUSIC_DIR.glob("*.mp3"))
@@ -155,7 +163,7 @@ def search_youtube_and_select(query, max_results=10):
     selected_url = streams["url"][index]
 
     audio_url = get_audio_url(selected_url)
-    return audio_url
+    return selected_title, audio_url
 
 
 # Process for playing mpv player
@@ -176,14 +184,12 @@ def main():
 
     elif args.u:
             
-            if args.d:
-                download_audio(args.u)
-            
-            else:
-                audio_url = search_youtube_and_select(args.u);
+            title, audio_url = search_youtube_and_select(args.u);
+            download_audio(title, audio_url)
 
-                if args.m:
-                    mpv_player(audio_url);
+            if args.m:
+                downloaded_file = download_audio(title, audio_url)
+                subprocess.run(["mpv", "--no-video", downloaded_file])
 
     elif args.l:
         play_local_audio()
