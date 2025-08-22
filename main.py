@@ -2,20 +2,23 @@
 
 # Classes importing
 from yt_dlp import YoutubeDL
-import vlc
 import argparse
 import sys
 import subprocess
 from pyfzf.pyfzf import FzfPrompt
-import requests
-from bs4 import BeautifulSoup
-import os 
-import json
 import pathlib
+import platform
 
 # Initialize fzf
 fzf = FzfPrompt()
 MUSIC_DIR = pathlib.Path.home() / "Music"
+
+system = platform.system()
+
+if system == "Windows":
+    mpv = "mpv.com"
+else:
+    mpv = "mpv"
 
 # Function for argument parsing
 def parse_arguments():
@@ -24,7 +27,7 @@ def parse_arguments():
 
     parser = argparse.ArgumentParser(
             prog="pl",
-            description="Which stands for Play Lofi, Is a simple lofi player that scrapes Youtube and Lofi Girl's Website for Music",
+            description="Which stands for Play Lofi, Is a simple lofi player that scrapes Youtube for Music",
             add_help=True,
             )
     parser.add_argument('-u', type=str,help='Specify the Youtube URL for the stream')
@@ -92,7 +95,7 @@ def play_local_audio():
         return
 
     selected_file = MUSIC_DIR / selected[0]
-    subprocess.run(["mpv", "--no-video", str(selected_file)])
+    mpv_player(selected_file)
 
 # Channel Scraper Function
 def channel_scraper(channel_url):
@@ -131,7 +134,7 @@ def channel_scraper(channel_url):
     return converted_url
 
 # Youtube search scrape function
-def search_youtube_and_select(query, max_results=10):
+def search_youtube_and_select(query, max_results=5):
 
     search_query = f"ytsearch{max_results}:{query}"
 
@@ -169,7 +172,7 @@ def search_youtube_and_select(query, max_results=10):
 # Process for playing mpv player
 def mpv_player(audio_url):
 
-    subprocess.run(["mpv", "--no-video",audio_url])
+    subprocess.run([mpv, "--no-video", audio_url])
 
 # Main function
 def main():  

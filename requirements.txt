@@ -1,5 +1,5 @@
 yt-dlp
 python-vlc
 pyfzf
-requests
-beautifulsoup4
+# requests
+# beautifulsoup4
