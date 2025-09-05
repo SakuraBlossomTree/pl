@@ -54,7 +54,7 @@ ydl_opts = {
             'no_warnings': True,
             'extract_flat': False,
             'skip_download': False,
-            'verbose': True,
+            'verbose': False,
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
