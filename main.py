@@ -107,7 +107,11 @@ def channel_scraper(channel_url):
 
     } 
 
-    with YoutubeDL(ydl_opts) as ydl:
+    opts = ydl_opts.copy() 
+    opts["extract_flat"] = True
+    opts["skip_download"] = True
+    
+    with YoutubeDL(opts) as ydl:
         info_dict = ydl.extract_info(channel_url, download=False)
 
         entries = info_dict["entries"]
