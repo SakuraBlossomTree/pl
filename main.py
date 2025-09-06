@@ -2,6 +2,7 @@
 
 # Classes importing
 from yt_dlp import YoutubeDL
+import yt_dlp
 import argparse
 import sys
 import subprocess
@@ -12,6 +13,7 @@ import platform
 # Initialize fzf
 fzf = FzfPrompt()
 MUSIC_DIR = pathlib.Path.home() / "Music"
+MUSIC_DIR.mkdir(parents=True, exist_ok=True)
 
 system = platform.system()
 
@@ -48,37 +50,53 @@ parse_arguments();
 # yt-dlp options
 ydl_opts = {
             
-            'format':"bestaudio/best",
-            'noplaylist' : True,
-            'quiet': True,
-            'no_warnings': True,
-            'extract_flat': False,
-            'skip_download': False,
-            'verbose': True,
-            'postprocessors': [{
+        "format": "bestaudio/best",
+        'noplaylist' : True,
+        'quiet': True,
+        'no_warnings': True,
+        'extract_flat': False,
+        'skip_download': False,
+        'verbose': True,
+        'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
-            }],
+        }],
 }
 
+def safe_extract_info(ydl, url, download=False):
+    try:
+        return ydl.extract_info(url, download=download)
+    except yt_dlp.utils.DownloadError as e:
+        print(f"Skipping {url} due to error: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error with {url}: {e}")
+        return None
 
 # A simple function that just gets the url of the youtube video
 def get_audio_url(video_url):
 
     with YoutubeDL(ydl_opts) as ydl:
-
-        info_dict = ydl.extract_info(video_url, download=False)
-        audio_url = info_dict["url"]
-        return audio_url 
+        info_dict = safe_extract_info(ydl, video_url, download=False)
+        if not info_dict:
+            return None
+        return info_dict["url"] 
 
 def download_audio(title, video_url):
     opts = ydl_opts.copy()
     opts["outtmpl"] = str(MUSIC_DIR / f"{title}.%(ext)s")
     
-    with YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(video_url, download=True)
-        filename = ydl.prepare_filename(info)
-        return filename
+    try:
+        with YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(video_url, download=True)
+            filename = ydl.prepare_filename(info)
+            return filename
+    except yt_dlp.utils.DownloadError as e:
+        print(f"Skipping {video_url} due to error: {e}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error with {video_url}: {e}")
+        return None
 
 def play_local_audio():
     files = list(MUSIC_DIR.glob("*.mp3"))
@@ -112,7 +130,10 @@ def channel_scraper(channel_url):
     opts["skip_download"] = True
     
     with YoutubeDL(opts) as ydl:
-        info_dict = ydl.extract_info(channel_url, download=False)
+        info_dict = safe_extract_info(ydl, channel_url, download=False)
+        
+        if not info_dict:
+            return None
 
         entries = info_dict["entries"]
 
@@ -138,12 +159,14 @@ def channel_scraper(channel_url):
     return converted_url
 
 # Youtube search scrape function
-def search_youtube_and_select(query, max_results=5):
+def search_youtube_and_select(query, max_results=3):
 
     search_query = f"ytsearch{max_results}:{query}"
 
     with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(search_query, download=False)
+        info = safe_extract_info(ydl, search_query, download=False)
+        if not info:
+            return None
 
     streams = {
         "title": [],
