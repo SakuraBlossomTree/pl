@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.env
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vs/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+lofi_player.log
+
+# Cache files
+.cache/
+*.cache
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+
+# Library cache (generated at runtime)
+*.json
+!config.json
+
+# Downloads (user's music files)
+youtube-downloads/
+
+# mpv DLL files (user must download separately)
+lib/libmpv-2.dll
+lib/*.dll
+lib/*.a
+lib/include
+*.7z
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+*.py,cover
+
+# Local configuration
+config.local.py
+settings.local.py
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
