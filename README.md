@@ -5,6 +5,8 @@ A beautiful Terminal User Interface (TUI) music player built with Python and Ric
 ![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
+![gif preview](pl.gif)
+
 ![screenshot menu](pl.png)
 
 ## Features
