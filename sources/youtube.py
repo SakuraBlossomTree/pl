@@ -46,6 +46,10 @@ class YouTubeSource:
             'quiet': True,
             'no_warnings': True,
             'extract_flat': False,
+            'nocheckcertificate': True,
+            'ignoreerrors': True,
+            'no_color': True,
+            'age_limit': None,  # No age limit
         }
     
     def _load_cache(self):
@@ -75,7 +79,8 @@ class YouTubeSource:
             return [YouTubeVideo(**v) for v in cached]
         
         try:
-            search_query = f"ytsearch{max_results}:{query}"
+            # Request more results to compensate for unavailable videos
+            search_query = f"ytsearch{max_results * 2}:{query}"
             
             with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
                 result = ydl.extract_info(search_query, download=False)
@@ -88,12 +93,23 @@ class YouTubeSource:
                     if not entry:
                         continue
                     
+                    # Skip if video has errors or is unavailable
+                    if entry.get('_type') == 'url' and not entry.get('ie_key'):
+                        continue
+                    
                     video_id = entry.get('id', '')
+                    if not video_id:
+                        continue
+                    
                     title = entry.get('title', 'Unknown Title')
                     channel = entry.get('uploader', 'Unknown Artist')
                     duration = entry.get('duration', 0) or 0
                     thumbnail = entry.get('thumbnail', '')
                     view_count = entry.get('view_count', 0) or 0
+                    
+                    # Skip videos without basic info
+                    if title == 'Unknown Title' or not duration:
+                        continue
                     
                     # Get best audio URL
                     url = entry.get('url', '')
@@ -115,15 +131,21 @@ class YouTubeSource:
                         url=url or f"https://www.youtube.com/watch?v={video_id}"
                     )
                     videos.append(video)
+                    
+                    # Stop once we have enough valid results
+                    if len(videos) >= max_results:
+                        break
                 
-                # Cache results
-                self.cache[cache_key] = [v.__dict__ for v in videos]
-                self._save_cache()
+                # Only cache if we got results
+                if videos:
+                    self.cache[cache_key] = [v.__dict__ for v in videos]
+                    self._save_cache()
                 
                 return videos
                 
         except Exception as e:
-            print(f"YouTube search error: {e}")
+            import logging
+            logging.error(f"YouTube search error: {e}")
             return []
     
     def get_audio_url(self, video_id: str) -> Optional[str]:

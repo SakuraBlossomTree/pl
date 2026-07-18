@@ -1,11 +1,16 @@
-"""MPV media player backend."""
-
 from typing import Optional, Callable, Any
 from dataclasses import dataclass
 from pathlib import Path
 
 # Note: mpv DLL path must be set in main.py BEFORE importing this module
 import mpv
+
+
+class LoopMode:
+    """Loop mode constants."""
+
+    OFF = "off"  # No looping
+    SINGLE = "single"  # Loop current track
 
 
 @dataclass
@@ -48,6 +53,7 @@ class MPVPlayer:
         self.queue: list[Track] = []
         self.current_index: int = -1
         self._current_track: Optional[Track] = None
+        self.loop_mode = LoopMode.OFF  # Default to no looping
         self._callbacks: dict[str, list[Callable]] = {
             "track_start": [],
             "track_end": [],
@@ -88,7 +94,17 @@ class MPVPlayer:
     def _on_track_end(self):
         """Handle track ending."""
         self._trigger("track_end", self.current_track)
-        self.next()
+
+        if self.loop_mode == LoopMode.SINGLE:
+            # Loop the current track
+            if self.current_track:
+                self.play_track(self.current_track, add_to_queue=False)
+        else:
+            # OFF mode: go to next track or stop if at end
+            if self.current_index + 1 < len(self.queue):
+                self.play_index(self.current_index + 1)
+            else:
+                self.stop()
 
     @property
     def current_track(self) -> Optional[Track]:
@@ -149,6 +165,8 @@ class MPVPlayer:
     def stop(self):
         """Stop playback."""
         self.player.stop()
+        self._current_track = None
+        self.current_index = -1
 
     def seek(self, seconds: float):
         """Seek to a position in seconds."""
@@ -189,12 +207,12 @@ class MPVPlayer:
     @property
     def position(self) -> float:
         """Get current playback position in seconds."""
-        return self.player.time_pos or 0
+        return float(self.player.time_pos or 0)
 
     @property
     def duration(self) -> float:
         """Get total duration of current track."""
-        return self.player.duration or 0
+        return float(self.player.duration or 0)
 
     def add_to_queue(self, track: Track):
         """Add a track to the queue."""
@@ -258,6 +276,17 @@ class MPVPlayer:
                 self.current_index -= 1
             elif to_index <= self.current_index < from_index:
                 self.current_index += 1
+
+    def cycle_loop_mode(self):
+        """Cycle through loop modes: OFF -> SINGLE -> OFF."""
+        modes = [LoopMode.OFF, LoopMode.SINGLE]
+        current = modes.index(self.loop_mode)
+        self.loop_mode = modes[(current + 1) % len(modes)]
+
+    def set_loop_mode(self, mode: str):
+        """Set loop mode directly."""
+        if mode in [LoopMode.OFF, LoopMode.SINGLE]:
+            self.loop_mode = mode
 
     def terminate(self):
         """Clean up resources."""

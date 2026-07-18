@@ -2,6 +2,7 @@
 
 import sys
 import asyncio
+import threading
 from typing import Optional, List
 from threading import Thread
 import time
@@ -164,7 +165,9 @@ class LofiPlayerApp:
             ("N/→", "Next"),
             ("P/←", "Prev"),
             ("+/-", "Volume"),
+            ("R", "Loop Mode"),
             ("Enter", "Play"),
+            ("A", "Add to Queue"),
             ("Q", "Quit"),
             ("?", "Help"),
         ]
@@ -200,6 +203,7 @@ class LofiPlayerApp:
   Space      - Play/Pause
   N or →     - Next track
   P or ←     - Previous track
+  R          - Cycle loop mode (Off/Single/Queue)
   L or Shift+→  - Seek forward 10s
   H or Shift+←  - Seek backward 10s
   + or =     - Volume up
@@ -224,6 +228,50 @@ class LofiPlayerApp:
         logging.debug(f"handle_input called with key: {key}")
         self.needs_refresh = True
 
+        # 1. Handle critical global keys
+        if key == "ctrl+c":
+            self.running = False
+            return
+
+        # 2. Handle Text Input (Search/YouTube)
+        if self.active_tab in ["search", "youtube"]:
+            # Capture text input: printable characters and space
+            # Exclude control keys that we want to allow for navigation
+            is_control_key = key in ["up", "down", "enter", "backspace", "esc", "tab", "ctrl+c"]
+            
+            if not is_control_key:
+                text = None
+                if key == "space":
+                    text = " "
+                elif len(key) == 1 and key.isprintable():
+                    text = key
+                
+                if text:
+                    self.search_display.update_query(text)
+                    
+                    # Trigger appropriate search
+                    if self.active_tab == "search":
+                        # Library search - use fuzzy search callback
+                        self.search_display.trigger_search()
+                    elif self.active_tab == "youtube" and len(self.search_display.query) >= 2:
+                        # YouTube search - run in thread
+                        threading.Thread(
+                            target=self._perform_youtube_search,
+                            args=(self.search_display.query,),
+                        ).start()
+                    return
+
+        # 3. Tab Cycling
+        if key == "tab":
+            modes = ["library", "youtube", "search"]
+            if self.active_tab in modes:
+                idx = modes.index(self.active_tab)
+                self.active_tab = modes[(idx + 1) % len(modes)]
+            else:
+                self.active_tab = "library"
+            return
+
+        # 4. Standard Shortcuts
         # Help toggle
         if key == "?":
             self.show_help = not self.show_help
@@ -233,7 +281,7 @@ class LofiPlayerApp:
             self.show_help = False
             return
 
-        # Tab switching
+        # Tab switching (Direct keys)
         if key == "1":
             self.active_tab = "library"
             return
@@ -257,8 +305,8 @@ class LofiPlayerApp:
             self.player.volume_down()
         elif key in ["l", "shift+right"]:
             self.player.seek_relative(10)
-        elif key in ["h", "shift+left"]:
-            self.player.seek_relative(-10)
+        elif key == "r":
+            self.player.cycle_loop_mode()
 
         # Navigation
         elif key == "up":
@@ -266,7 +314,7 @@ class LofiPlayerApp:
         elif key == "down":
             self._move_selection(1)
         elif key == "enter":
-            # Handle folder navigation in library
+            logging.debug(f"Enter key pressed in tab: {self.active_tab}")
             if self.active_tab == "library" and self.library_display:
                 selected = self.library_display.get_selected()
                 if isinstance(selected, str):
@@ -276,6 +324,7 @@ class LofiPlayerApp:
                     # It's a track, play it
                     self._play_selected()
             else:
+                logging.debug(f"Calling _play_selected() for tab: {self.active_tab}")
                 self._play_selected()
         elif key in ["backspace", "esc"]:
             # Handle going back from folder in library
@@ -287,20 +336,31 @@ class LofiPlayerApp:
                     pass
             elif self.active_tab in ["search", "youtube"]:
                 self.search_display.backspace()
+                # Trigger search for library search tab
+                if self.active_tab == "search":
+                    self.search_display.trigger_search()
+
+        elif key == "a":
+            self._add_to_queue()
 
         # Quit
-        elif key in ["q", "ctrl+c"]:
+        elif key == "q":
             self.running = False
 
-        # Search input handling
+    def _add_to_queue(self):
+        """Add the selected track to the queue."""
+        track = None
+
+        if self.active_tab == "library" and self.library_display:
+            selected = self.library_display.get_selected()
+            # Only add if it's a track (not a folder)
+            if isinstance(selected, Track):
+                track = selected
         elif self.active_tab in ["search", "youtube"]:
-            if key == "backspace":
-                self.search_display.backspace()
-            elif len(key) == 1 and key.isprintable():
-                self.search_display.update_query(key)
-                if self.active_tab == "youtube":
-                    # Trigger YouTube search
-                    asyncio.create_task(self._youtube_search())
+            track = self.search_display.get_selected()
+
+        if track:
+            self.player.add_to_queue(track)
 
     def _move_selection(self, delta: int):
         """Move selection in the active tab."""
@@ -311,6 +371,7 @@ class LofiPlayerApp:
 
     def _play_selected(self):
         """Play the selected track immediately."""
+        import logging
         track = None
 
         if self.active_tab == "library" and self.library_display:
@@ -320,9 +381,15 @@ class LofiPlayerApp:
                 track = selected
         elif self.active_tab in ["search", "youtube"]:
             track = self.search_display.get_selected()
+            logging.debug(f"YouTube/Search tab - got track: {track}")
+            if track:
+                logging.debug(f"  Track title: {track.title}, source: {track.source}")
 
         if track:
-            self.player.play_track(track)
+            logging.debug(f"Playing track: {track.title}")
+            self.player.play_track(track, add_to_queue=False)
+        else:
+            logging.debug("No track to play!")
 
     async def _youtube_search(self):
         """Perform YouTube search."""
@@ -338,6 +405,22 @@ class LofiPlayerApp:
             loop = asyncio.get_event_loop()
             videos = await loop.run_in_executor(None, self.youtube.search, query, 10)
 
+            self.search_display.results = [v.to_track() for v in videos]
+            self.search_display.selected_index = 0
+        finally:
+            self.search_display.searching = False
+            self.needs_refresh = True
+
+    def _perform_youtube_search(self, query: str):
+        """Perform YouTube search synchronously."""
+        if len(query) < 2:
+            return
+
+        self.search_display.searching = True
+        self.needs_refresh = True
+
+        try:
+            videos = self.youtube.search(query, 10)
             self.search_display.results = [v.to_track() for v in videos]
             self.search_display.selected_index = 0
         finally:
